@@ -1,0 +1,8 @@
+// When AddFooModel.Body props map to Foo props
+CreateMap<AddFooModel, Foo>()
+	.ForMember(dest => dest.Id, opt => opt.Ignore())
+	.ForAllOtherMembers(e => e.MapFrom((src, dest) =>
+	{
+		var name = e.DestinationMember.Name;
+		return src.Body.GetType().GetProperty(name)?.GetValue(src.Body, null);
+	}));
