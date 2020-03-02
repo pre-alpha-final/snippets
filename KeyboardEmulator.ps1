@@ -17,6 +17,10 @@ public class Keyboard
         var input = new Input { type = 1 };
         input.U.ki.wScan = scanCode;
         input.U.ki.dwFlags = (uint)(down ? 8 : 10);
+        if (scanCode < 0)
+        {
+            input.U.ki.dwFlags++;
+        }
         inputs[0] = input;
         SendInput(1, inputs, Input.Size);
     }
