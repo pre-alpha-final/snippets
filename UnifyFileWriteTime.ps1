@@ -1,0 +1,1 @@
+dir | ForEach-Object {$_.LastWriteTime = New-object DateTime 2020,11,24}
