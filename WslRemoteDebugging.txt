@@ -1,0 +1,26 @@
+1. vscode "remote - wsl" extension
+2. main folder -> .vscode/launch.json
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": ".NET Core Attach",
+            "type": "coreclr",
+            "request": "attach",
+            "processId": "${command:pickRemoteProcess}",
+            "pipeTransport": {
+                "pipeCwd": "${workspaceRoot}",
+                "pipeProgram": "bash.exe",
+                "pipeArgs": [ "-c" ],
+                "debuggerPath": "~/vsdbg/vsdbg"
+              }
+        }
+    ]
+}
+3. ubuntu2004.exe config --default-user root
+4. curl -sSL https://aka.ms/getvsdbgsh | /bin/sh /dev/stdin -v latest -l ~/vsdbg
+5. connect to wsl through vscode and navigate to main folder (the one with .vscode folder)
+6. F5 -> follow instructions
