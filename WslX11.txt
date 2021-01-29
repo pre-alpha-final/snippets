@@ -1,0 +1,3 @@
+/home/username/.bashhrc - export DISPLAY=$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}'):0
+VCXSVR - with -ac option
+apt install firefox
