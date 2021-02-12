@@ -1,3 +1,6 @@
+=-=--=
+VSCODE
+==--=-
 1. vscode "remote - wsl" extension
 2. main folder -> .vscode/launch.json
 {
@@ -24,3 +27,19 @@
 4. curl -sSL https://aka.ms/getvsdbgsh | /bin/sh /dev/stdin -v latest -l ~/vsdbg
 5. connect to wsl through vscode and navigate to main folder (the one with .vscode folder)
 6. F5 -> follow instructions
+
+-=-=-=-=-==-=
+VISUAL STUDIO
+-=-=-=-=-=-=-
+1. curl -sSL https://aka.ms/getvsdbgsh | /bin/sh /dev/stdin -v latest -l ~/vsdbg
+2. apt remove openssh-server
+   apt install openssh-server
+3. /etc/ssh/sshd_config:
+   PermitRootLogin yes
+   PubkeyAuthentication yes
+   PasswordAuthentication no
+4. bashrc: service ssh start
+5. ssh-keygen -m pem
+6. cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
+7. service ssh restart
+8. visual studio -> connection manager
