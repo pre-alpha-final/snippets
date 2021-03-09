@@ -1,0 +1,1 @@
+alias cdw='function _cdw() { cd $(printf "%s" "$(printf "%s" "$1" | sed 's/C:/\\\\/mnt\\\\/c\\\\//g' | sed 's/\\\\\\\\/\\\\//g')") }; _cdw'
