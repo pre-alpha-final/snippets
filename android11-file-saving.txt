@@ -1,0 +1,87 @@
+-=-=--=-=--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-======-=-=
+// where 'this' is an Activity
+Task.Run(async () =>
+{
+	// SAVE START
+	var intent1 = new Intent(Intent.ActionCreateDocument);
+	intent1.AddCategory(Intent.CategoryOpenable);
+	intent1.SetType("*/*");
+	intent1.PutExtra(Intent.ExtraTitle, "my_file_name.txt");
+	var activityResultListener1 = new ActivityResultListener(this, 123, async (requestCode, resultCode, data) =>
+	{
+		await using var openOutputStream = ContentResolver.OpenOutputStream(data.Data);
+		await openOutputStream.WriteAsync(Encoding.ASCII.GetBytes("test text"));
+		openOutputStream.Close();
+	});
+	StartActivityForResult(intent1, 123);
+	await activityResultListener1.TaskCompletionSource.Task;
+	// SAVE END
+
+	// OPEN START
+	var intent2 = new Intent(Intent.ActionOpenDocument);
+	intent2.AddCategory(Intent.CategoryOpenable);
+	intent2.SetType("*/*");
+	//intent2.putExtra(DocumentsContract.EXTRA_INITIAL_URI, pickerInitialUri);
+	var activityResultListener2 = new ActivityResultListener(this, 321, (requestCode, resultCode, data) =>
+	{
+		var uri = data.Data;
+		var bufferedReader = new BufferedReader(new InputStreamReader(ContentResolver.OpenInputStream(uri)));
+		var readLine = bufferedReader.ReadLine();
+		return Task.CompletedTask;
+	});
+	StartActivityForResult(intent2, 321);
+	await activityResultListener2.TaskCompletionSource.Task;
+	// OPEN END
+});
+--=-=-=-====--=--=--=-=-=-=---==-=-=-=-=-====-=-=-=-=-=-=-=-
+
+-=-=-=-=-=-=-=-=-=-==-=-=--=-=-===-=-=-=-=-=-=-=-==-===-=--=
+public event Action<int, Result, Intent> ActivityResult;
+
+(...)
+
+protected override void OnActivityResult(int requestCode, Result resultCode, Intent data)
+{
+	ActivityResult?.Invoke(requestCode, resultCode, data);
+	base.OnActivityResult(requestCode, resultCode, data);
+}
+-==-=--==-=-=====-=-=-=-==-===-==-=-=-=-=-=-===-=--==--===--
+
+=-=--=-=-=-=-==-=-=-=-=-=-=-=-=-=-=-=====-==--=-=-=-==--=-=-
+using Android.App;
+using Android.Content;
+using System;
+using System.Threading.Tasks;
+
+namespace Pass.Droid
+{
+	public class ActivityResultListener
+	{
+		private readonly MainActivity _activity;
+		private readonly int _requestCode;
+		private readonly Func<int, Result, Intent, Task> _onResult;
+		public TaskCompletionSource<object> TaskCompletionSource = new TaskCompletionSource<object>();
+
+		public ActivityResultListener(MainActivity activity, int requestCode, Func<int, Result, Intent, Task> onResult)
+		{
+			_activity = activity;
+			_requestCode = requestCode;
+			_onResult = onResult;
+			activity.ActivityResult += OnActivityResult;
+		}
+
+		private void OnActivityResult(int requestCode, Result resultCode, Intent data)
+		{
+			if (requestCode == _requestCode)
+			{
+				_activity.ActivityResult -= OnActivityResult;
+				Task.Run(async () =>
+				{
+					await _onResult.Invoke(requestCode, resultCode, data);
+					TaskCompletionSource.SetResult(null);
+				});
+			}
+		}
+	}
+}
+=-=-=-=-=-=-=-===--===-==-==-==-=-==-=-=-=-=-=-=-=-=-=-==-==
