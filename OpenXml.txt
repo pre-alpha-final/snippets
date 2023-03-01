@@ -1,0 +1,67 @@
+//
+// source: https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.spreadsheet.cellvalue?view=openxml-2.8.1
+//
+
+using System;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+
+namespace CellTypeEx
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            string fileName = @"C:\Users\Public\Documents\CellValueEx.xlsx";
+
+            // Create a spreadsheet document by supplying the fileName.
+            SpreadsheetDocument spreadsheetDocument = SpreadsheetDocument.
+                Create(fileName, SpreadsheetDocumentType.Workbook);
+
+            // Add a WorkbookPart to the document.
+            WorkbookPart workbookpart = spreadsheetDocument.AddWorkbookPart();
+            workbookpart.Workbook = new Workbook();
+
+            // Add a WorksheetPart to the WorkbookPart.
+            WorksheetPart worksheetPart = workbookpart.AddNewPart<WorksheetPart>();
+            worksheetPart.Worksheet = new Worksheet(new SheetData());
+
+            // Add Sheets to the Workbook.
+            Sheets sheets = spreadsheetDocument.WorkbookPart.Workbook.AppendChild<Sheets>(new Sheets());
+
+            // Append a new worksheet and associate it with the workbook.
+            Sheet sheet = new Sheet()
+            {
+                Id = spreadsheetDocument.WorkbookPart.
+                    GetIdOfPart(worksheetPart),
+                SheetId = 1,
+                Name = "mySheet"
+            };
+
+            sheets.Append(sheet);
+            Worksheet worksheet = new Worksheet();
+            SheetData sheetData = new SheetData();
+
+            Row row = new Row() { RowIndex = 2U, Spans = new ListValue<StringValue>() };
+            Cell cell = new Cell()
+            {
+                CellReference = "A2",
+                DataType = CellValues.String,
+                CellValue = new CellValue("Microsoft")
+            };
+
+            row.Append(cell);
+            sheetData.Append(row);
+            worksheet.Append(sheetData);
+            worksheetPart.Worksheet = worksheet;
+            workbookpart.Workbook.Save();
+
+            // Close the document.
+            spreadsheetDocument.Close();
+
+            Console.WriteLine("All done.\nPress a key.");
+            Console.ReadKey();
+        }
+    }
+}
