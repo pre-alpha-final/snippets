@@ -1,0 +1,7 @@
+let x = await fetch("...", {...});
+let y = await x.blob()
+let z = await y.arrayBuffer()
+let zz = btoa(Array.from(new Uint8Array(z)).map(e => String.fromCharCode(e)).join(''))
+URL.createObjectURL(new Blob([zz]))
+dl the blob through network tab
+unbase64 (i.e. cyberchef)
