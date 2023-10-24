@@ -1,0 +1,35 @@
+        var spreadsheetDocument = SpreadsheetDocument.Open(filename, true);
+
+        var sheetId = spreadsheetDocument.WorkbookPart.Workbook
+            .GetFirstChild<Sheets>()
+            .Elements<Sheet>()
+            .First(e => e.Name == "Sheet1")
+            .Id
+            .Value;
+
+        var worksheetPart = (WorksheetPart)spreadsheetDocument.WorkbookPart.GetPartById(sheetId);
+
+        var worksheet = worksheetPart.Worksheet;
+
+        // Add new row
+        var row = new Row { RowIndex = 1 };
+        row.Append(new Cell
+        {
+            DataType = CellValues.Number,
+            CellValue = new CellValue(1)
+        });
+        worksheet.GetFirstChild<SheetData>().Append(row);
+
+        // Update cell
+        var cell = worksheet
+            .GetFirstChild<SheetData>()
+            .Elements<Row>()
+            .First(r => r.RowIndex == 1)
+            .Elements<Cell>()
+            .Skip(0)
+            .First();
+        cell.CellValue = new CellValue(2);
+
+        worksheetPart.Worksheet.Save();
+
+        spreadsheetDocument.Close();
