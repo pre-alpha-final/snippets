@@ -1,0 +1,2 @@
+=OFFSET(Sheet2!$A$1;;;Sheet2!$D$1;1)
+https://www.youtube.com/watch?v=14qAWt1DhRE
