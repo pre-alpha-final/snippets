@@ -1,0 +1,1 @@
+redis-cli cluster nodes | awk '{print $2" "$3}' | grep master | awk -F @ '{print $1}' | awk -F : '{print " -h "$1" -p "$2" keys *"}' | xargs -L 1 redis-cli -c
