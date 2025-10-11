@@ -1,0 +1,24 @@
+(() => {
+  setInterval(() => {
+    [...document.getElementsByTagName('input')].filter(e => e.getAttribute('placeholder') == 'Some Placeholder Text').forEach(e => {
+      if (e.dataset.customButtonAdded) {
+        return;
+      }
+      e.dataset.customButtonAdded = true;
+
+      const customButtonAdded = document.createElement('button');
+      customButtonAdded.textContent = 'Fill';
+      customButtonAdded.style.marginLeft = '10px';
+      customButtonAdded.addEventListener('click', () => {
+        const guid = (() => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => ('x' === c ? (Math.random() * 16 | 0) : (Math.random() * 16 | 0) & 0x3 | 0x8).toString(16)))();
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+          window.HTMLInputElement.prototype,
+          'value'
+        ).set;
+        nativeInputValueSetter.call(e, guid);
+        e.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      e.insertAdjacentElement('afterend', customButtonAdded);
+    });
+  }, 100);
+})()
