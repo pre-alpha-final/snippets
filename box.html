@@ -1,0 +1,1113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Boxing is an architecture pattern for processing correlated events as domain context, not isolated messages.">
+  <meta name="color-scheme" content="dark">
+  <title>Boxing — Process context, not isolated events</title>
+  <style>
+    :root {
+      --ink: #090a0a;
+      --ink-soft: #101212;
+      --panel: #141616;
+      --panel-raised: #191c1c;
+      --line: #2b3030;
+      --line-bright: #3a4140;
+      --paper: #f1eee6;
+      --muted: #9aa09d;
+      --dim: #686e6b;
+      --amber: #ffb45b;
+      --amber-soft: rgba(255, 180, 91, 0.12);
+      --cyan: #72d6cf;
+      --cyan-soft: rgba(114, 214, 207, 0.11);
+      --success: #b7e68b;
+      --radius: 18px;
+      --max: 1180px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background:
+        radial-gradient(circle at 77% 9%, rgba(114, 214, 207, 0.07), transparent 29rem),
+        radial-gradient(circle at 13% 26%, rgba(255, 180, 91, 0.05), transparent 25rem),
+        var(--ink);
+      color: var(--paper);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; }
+
+    button, a { -webkit-tap-highlight-color: transparent; }
+
+    :focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 4px;
+    }
+
+    .shell {
+      width: min(calc(100% - 40px), var(--max));
+      margin-inline: auto;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 82px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      text-decoration: none;
+      font-weight: 760;
+      letter-spacing: -0.03em;
+    }
+
+    .brand-mark {
+      position: relative;
+      width: 25px;
+      height: 22px;
+      border: 1px solid var(--paper);
+      border-radius: 5px;
+      box-shadow: inset 0 -5px 0 var(--amber-soft);
+    }
+
+    .brand-mark::before {
+      content: "";
+      position: absolute;
+      inset: -5px 4px auto;
+      height: 5px;
+      border: 1px solid var(--paper);
+      border-bottom: 0;
+      border-radius: 4px 4px 0 0;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      font-size: 0.84rem;
+      color: var(--muted);
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      transition: color 180ms ease;
+    }
+
+    .nav-links a:hover { color: var(--paper); }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(330px, 0.92fr);
+      gap: 68px;
+      align-items: end;
+      padding: 110px 0 72px;
+    }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 24px;
+      color: var(--amber);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 0.76rem;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 18px currentColor;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+
+    h1 {
+      max-width: 760px;
+      margin-bottom: 28px;
+      font-size: clamp(3.35rem, 7.8vw, 7.2rem);
+      line-height: 0.91;
+      letter-spacing: -0.072em;
+      font-weight: 690;
+    }
+
+    h1 span {
+      display: block;
+      color: var(--muted);
+      font-weight: 430;
+    }
+
+    .hero-copy {
+      max-width: 610px;
+      margin-bottom: 0;
+      color: #b7bcb9;
+      font-size: clamp(1.05rem, 1.55vw, 1.28rem);
+      line-height: 1.65;
+    }
+
+    .definition {
+      position: relative;
+      padding: 27px 28px 25px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.012));
+      overflow: hidden;
+    }
+
+    .definition::after {
+      content: "BOX";
+      position: absolute;
+      right: -4px;
+      bottom: -19px;
+      color: rgba(255,255,255,0.025);
+      font-size: 6.5rem;
+      font-weight: 800;
+      letter-spacing: -0.08em;
+    }
+
+    .definition dt {
+      position: relative;
+      z-index: 1;
+      margin-bottom: 10px;
+      color: var(--cyan);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .definition dd {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      color: #d8d6cf;
+      font-size: 1.05rem;
+      line-height: 1.65;
+    }
+
+    .demo-section { padding: 28px 0 128px; }
+
+    .demo-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 26px;
+    }
+
+    .demo-label {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .demo-controls { display: flex; gap: 9px; }
+
+    .control {
+      min-height: 40px;
+      padding: 0 15px;
+      border: 1px solid var(--line-bright);
+      border-radius: 999px;
+      background: var(--panel);
+      color: var(--paper);
+      font: inherit;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+    }
+
+    .control:hover {
+      border-color: #626967;
+      background: var(--panel-raised);
+    }
+
+    .control:active { transform: translateY(1px); }
+
+    .demo {
+      position: relative;
+      display: grid;
+      grid-template-columns: 0.9fr 110px 1.5fr 170px;
+      min-height: 480px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: rgba(16, 18, 18, 0.9);
+      box-shadow: 0 28px 90px rgba(0,0,0,0.34);
+      overflow: hidden;
+    }
+
+    .demo::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.023) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.023) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: linear-gradient(to bottom, black, transparent 94%);
+    }
+
+    .demo-column {
+      position: relative;
+      z-index: 1;
+      min-width: 0;
+      padding: 28px;
+    }
+
+    .demo-column + .demo-column { border-left: 1px solid var(--line); }
+
+    .column-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 23px;
+      color: var(--muted);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.69rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .live {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--success);
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    .live::before {
+      content: "";
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 10px currentColor;
+    }
+
+    .event-stream {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .stream-event {
+      position: relative;
+      display: grid;
+      gap: 4px;
+      padding: 13px 14px 12px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: #121414;
+      opacity: 0.55;
+      transition: opacity 240ms ease, border-color 240ms ease, transform 240ms ease, background 240ms ease;
+    }
+
+    .stream-event strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.73rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .stream-event small {
+      color: var(--dim);
+      font-size: 0.7rem;
+    }
+
+    .stream-event.is-active {
+      z-index: 2;
+      border-color: var(--amber);
+      background: var(--amber-soft);
+      opacity: 1;
+      transform: translateX(5px);
+      box-shadow: 0 0 24px rgba(255,180,91,0.09);
+    }
+
+    .stream-event.is-sent { opacity: 0.26; }
+
+    .router {
+      display: grid;
+      place-items: center;
+      padding-inline: 15px;
+    }
+
+    .router-core {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 62px;
+      height: 62px;
+      border: 1px solid var(--line-bright);
+      border-radius: 50%;
+      background: var(--panel-raised);
+      color: var(--muted);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.58rem;
+      letter-spacing: 0.08em;
+      text-align: center;
+      text-transform: uppercase;
+      transition: color 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+    }
+
+    .router-core::before,
+    .router-core::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 25px;
+      height: 1px;
+      background: var(--line-bright);
+    }
+
+    .router-core::before { right: 100%; }
+    .router-core::after { left: 100%; }
+
+    .demo.is-routing .router-core {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 30px var(--cyan-soft), inset 0 0 18px var(--cyan-soft);
+    }
+
+    .boxes { display: grid; gap: 14px; }
+
+    .box-card {
+      position: relative;
+      min-height: 183px;
+      padding: 18px;
+      border: 1px solid var(--line-bright);
+      border-radius: 14px;
+      background: linear-gradient(140deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012));
+      transition: border-color 220ms ease, box-shadow 220ms ease, opacity 300ms ease;
+      overflow: hidden;
+    }
+
+    .box-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 18px;
+      width: 38px;
+      height: 3px;
+      border-radius: 0 0 3px 3px;
+      background: var(--accent);
+      box-shadow: 0 0 14px var(--accent);
+    }
+
+    .order-box { --accent: var(--amber); }
+    .session-box { --accent: var(--cyan); }
+
+    .box-card.is-receiving {
+      border-color: var(--accent);
+      box-shadow: 0 0 30px color-mix(in srgb, var(--accent) 11%, transparent);
+    }
+
+    .box-card.is-closed {
+      border-style: dashed;
+      opacity: 0.68;
+    }
+
+    .box-card.is-closed::after {
+      content: "closed";
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      padding: 4px 7px;
+      border-radius: 999px;
+      background: var(--amber-soft);
+      color: var(--amber);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.58rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .box-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 15px;
+      margin-bottom: 14px;
+    }
+
+    .box-name {
+      margin: 0;
+      font-size: 0.92rem;
+      letter-spacing: -0.02em;
+    }
+
+    .box-policy {
+      color: var(--dim);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.58rem;
+      white-space: nowrap;
+    }
+
+    .box-events {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      min-height: 58px;
+      align-content: start;
+    }
+
+    .box-event {
+      padding: 6px 8px;
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 6px;
+      background: rgba(255,255,255,0.035);
+      color: #b9bdbb;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.58rem;
+    }
+
+    .js .box-event {
+      opacity: 0;
+      transform: translateY(5px);
+      transition: opacity 260ms ease, transform 260ms ease;
+    }
+
+    .js .box-event.is-visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    .processor {
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 16px;
+      text-align: center;
+    }
+
+    .processor-node {
+      position: relative;
+      width: 98px;
+      min-height: 112px;
+      display: grid;
+      place-items: center;
+      padding: 16px 12px;
+      border: 1px solid var(--line-bright);
+      border-radius: 14px;
+      background: var(--panel-raised);
+      color: var(--muted);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.64rem;
+      line-height: 1.45;
+      transition: border-color 260ms ease, color 260ms ease, box-shadow 260ms ease, transform 260ms ease;
+    }
+
+    .processor-node::before {
+      content: "";
+      position: absolute;
+      right: 100%;
+      top: 50%;
+      width: 36px;
+      height: 1px;
+      background: var(--line-bright);
+    }
+
+    .processor.is-ready .processor-node {
+      border-color: var(--success);
+      color: var(--success);
+      transform: translateX(3px);
+      box-shadow: 0 0 30px rgba(183,230,139,0.08);
+    }
+
+    .processor small {
+      max-width: 115px;
+      color: var(--dim);
+      font-size: 0.68rem;
+      line-height: 1.5;
+    }
+
+    .demo-status {
+      margin: 14px 4px 0;
+      color: var(--muted);
+      font-size: 0.77rem;
+    }
+
+    .demo-status strong { color: var(--paper); font-weight: 520; }
+
+    .section {
+      padding: 120px 0;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .section-grid {
+      display: grid;
+      grid-template-columns: 0.68fr 1.32fr;
+      gap: 80px;
+    }
+
+    .section-kicker {
+      color: var(--dim);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin-bottom: 28px;
+      font-size: clamp(2.4rem, 5.2vw, 5rem);
+      line-height: 1;
+      letter-spacing: -0.058em;
+      font-weight: 580;
+    }
+
+    .lead {
+      max-width: 760px;
+      color: #b1b6b3;
+      font-size: clamp(1.12rem, 1.7vw, 1.38rem);
+      line-height: 1.65;
+    }
+
+    .contrast {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      margin-top: 48px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--line);
+      overflow: hidden;
+    }
+
+    .contrast article {
+      padding: 31px;
+      background: var(--ink-soft);
+    }
+
+    .contrast small {
+      display: block;
+      margin-bottom: 48px;
+      color: var(--dim);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+    }
+
+    .contrast p {
+      max-width: 430px;
+      margin-bottom: 0;
+      font-size: clamp(1.25rem, 2.2vw, 1.75rem);
+      line-height: 1.35;
+      letter-spacing: -0.025em;
+    }
+
+    .contrast .after { background: linear-gradient(145deg, #121817, #101212); }
+    .contrast .after small { color: var(--cyan); }
+
+    .lifecycle {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      margin-top: 58px;
+      border-top: 1px solid var(--line);
+    }
+
+    .step {
+      position: relative;
+      padding: 28px 24px 0 0;
+    }
+
+    .step::before {
+      content: "";
+      position: absolute;
+      top: -4px;
+      left: 0;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--paper);
+    }
+
+    .step-index {
+      display: block;
+      margin-bottom: 40px;
+      color: var(--dim);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.68rem;
+    }
+
+    .step h3 {
+      margin-bottom: 10px;
+      font-size: 1.05rem;
+      font-weight: 570;
+    }
+
+    .step p {
+      margin-bottom: 0;
+      padding-right: 20px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.65;
+    }
+
+    .policy-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 46px;
+    }
+
+    .policy {
+      min-height: 170px;
+      padding: 25px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.018);
+    }
+
+    .policy-code {
+      display: block;
+      margin-bottom: 37px;
+      color: var(--amber);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.7rem;
+    }
+
+    .policy h3 { margin-bottom: 8px; font-size: 1rem; }
+    .policy p { margin-bottom: 0; color: var(--muted); font-size: 0.85rem; }
+
+    .overlap-visual {
+      position: relative;
+      min-height: 380px;
+      display: grid;
+      place-items: center;
+      margin-top: 46px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.016);
+      overflow: hidden;
+    }
+
+    .domain-circle {
+      position: absolute;
+      display: grid;
+      place-items: center;
+      width: min(310px, 45vw);
+      aspect-ratio: 1;
+      border: 1px solid;
+      border-radius: 50%;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.78rem;
+    }
+
+    .domain-circle.order {
+      left: calc(50% - 260px);
+      border-color: rgba(255,180,91,0.48);
+      background: rgba(255,180,91,0.045);
+      color: var(--amber);
+    }
+
+    .domain-circle.session {
+      right: calc(50% - 260px);
+      border-color: rgba(114,214,207,0.48);
+      background: rgba(114,214,207,0.045);
+      color: var(--cyan);
+    }
+
+    .shared-event {
+      position: relative;
+      z-index: 2;
+      padding: 11px 14px;
+      border: 1px solid #68706d;
+      border-radius: 8px;
+      background: #171a19;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.72rem;
+    }
+
+    .payoff {
+      padding: 150px 0 130px;
+      text-align: center;
+    }
+
+    .payoff p {
+      max-width: 900px;
+      margin: 0 auto;
+      font-size: clamp(2.2rem, 5.6vw, 5.4rem);
+      line-height: 1.04;
+      letter-spacing: -0.06em;
+    }
+
+    .payoff p span { color: var(--muted); }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 30px;
+      padding: 36px 0 46px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      color: var(--dim);
+      font-size: 0.76rem;
+    }
+
+    @media (max-width: 960px) {
+      .hero { grid-template-columns: 1fr; gap: 46px; padding-top: 82px; }
+      .definition { max-width: 600px; }
+      .demo { grid-template-columns: 1fr 80px 1.4fr; }
+      .processor { grid-column: 1 / -1; min-height: 150px; border-top: 1px solid var(--line); }
+      .processor-node { width: 150px; min-height: 76px; }
+      .processor-node::before { display: none; }
+      .section-grid { grid-template-columns: 1fr; gap: 28px; }
+      .lifecycle { grid-template-columns: repeat(2, 1fr); row-gap: 48px; }
+    }
+
+    @media (max-width: 680px) {
+      .shell { width: min(calc(100% - 28px), var(--max)); }
+      .nav { min-height: 70px; }
+      .nav-links { display: none; }
+      .hero { padding: 72px 0 54px; }
+      h1 { font-size: clamp(3.2rem, 18vw, 5rem); }
+      .demo-section { padding-bottom: 92px; }
+      .demo-header { align-items: center; }
+      .demo { display: block; min-height: 0; }
+      .demo-column + .demo-column { border-left: 0; border-top: 1px solid var(--line); }
+      .router { min-height: 86px; border-top: 1px solid var(--line); }
+      .router-core::before,
+      .router-core::after { width: 1px; height: 14px; left: 50%; right: auto; }
+      .router-core::before { top: auto; bottom: 100%; }
+      .router-core::after { top: 100%; }
+      .processor { min-height: 150px; }
+      .demo-column { padding: 22px; }
+      .section { padding: 88px 0; }
+      .contrast { grid-template-columns: 1fr; }
+      .contrast article { padding: 25px; }
+      .contrast small { margin-bottom: 30px; }
+      .lifecycle { grid-template-columns: 1fr; row-gap: 30px; }
+      .step-index { margin-bottom: 22px; }
+      .policy-list { grid-template-columns: 1fr; }
+      .domain-circle { width: 230px; }
+      .domain-circle.order { left: calc(50% - 195px); }
+      .domain-circle.session { right: calc(50% - 195px); }
+      .overlap-visual { min-height: 320px; }
+      .payoff { padding: 105px 0 90px; }
+      .footer { flex-direction: column; gap: 8px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="shell">
+    <nav class="nav" aria-label="Primary navigation">
+      <a class="brand" href="#top" aria-label="Boxing, back to top">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>Boxing</span>
+      </a>
+      <div class="nav-links">
+        <a href="#how">How it works</a>
+        <a href="#policies">Closing policies</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero shell" aria-labelledby="hero-title">
+      <div>
+        <p class="eyebrow">An architecture pattern for event systems</p>
+        <h1 id="hero-title">Process context. <span>Not isolated events.</span></h1>
+        <p class="hero-copy">Events arrive as fragments. Boxing routes them into durable, domain-level containers—then lets your business logic work with the whole picture.</p>
+      </div>
+      <dl class="definition">
+        <dt>Box /bɒks/</dt>
+        <dd>A collection of correlated events that closes deliberately and is processed as one meaningful unit.</dd>
+      </dl>
+    </section>
+
+    <section class="demo-section shell" aria-labelledby="demo-title">
+      <div class="demo-header">
+        <p class="demo-label" id="demo-title">A stream, seen through Boxing</p>
+        <div class="demo-controls">
+          <button class="control" id="toggle-demo" type="button" aria-pressed="false">Pause</button>
+          <button class="control" id="replay-demo" type="button">Replay</button>
+        </div>
+      </div>
+
+      <div class="demo" id="boxing-demo">
+        <section class="demo-column" aria-label="Incoming events">
+          <div class="column-title"><span>Event stream</span><span class="live">incoming</span></div>
+          <ol class="event-stream">
+            <li class="stream-event" data-step="1"><strong>search.performed</strong><small>session: 7</small></li>
+            <li class="stream-event" data-step="2"><strong>product.viewed</strong><small>session: 7</small></li>
+            <li class="stream-event" data-step="3"><strong>cart.updated</strong><small>order: 1842 · session: 7 · 2 routes</small></li>
+            <li class="stream-event" data-step="4"><strong>payment.authorized</strong><small>order: 1842</small></li>
+            <li class="stream-event" data-step="5"><strong>order.confirmed</strong><small>order: 1842 · closes box</small></li>
+          </ol>
+        </section>
+
+        <div class="demo-column router" aria-label="Routing rules choose the relevant boxes">
+          <div class="router-core">route<br>by meaning</div>
+        </div>
+
+        <section class="demo-column" aria-label="Open boxes">
+          <div class="column-title"><span>Domain boxes</span><span>02 open</span></div>
+          <div class="boxes">
+            <article class="box-card order-box" data-box="order">
+              <div class="box-head">
+                <h3 class="box-name">OrderBox #1842</h3>
+                <span class="box-policy">until: confirmed</span>
+              </div>
+              <div class="box-events">
+                <span class="box-event" data-at="3">cart.updated</span>
+                <span class="box-event" data-at="4">payment.authorized</span>
+                <span class="box-event" data-at="5">order.confirmed</span>
+              </div>
+            </article>
+            <article class="box-card session-box" data-box="session">
+              <div class="box-head">
+                <h3 class="box-name">SessionBox #7</h3>
+                <span class="box-policy">idle: 30m</span>
+              </div>
+              <div class="box-events">
+                <span class="box-event" data-at="1">search.performed</span>
+                <span class="box-event" data-at="2">product.viewed</span>
+                <span class="box-event" data-at="3">cart.updated</span>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="demo-column processor" aria-label="Box processor">
+          <div class="processor-node">PROCESS<br>THE BOX</div>
+          <small>One decision, with the relevant context intact.</small>
+        </section>
+      </div>
+      <p class="demo-status" id="demo-status" aria-live="polite"><strong>Routing:</strong> search.performed → SessionBox #7</p>
+      <noscript><p class="demo-status">The completed diagram above shows events routed into OrderBox #1842 and SessionBox #7, with the confirmed order ready for group processing.</p></noscript>
+    </section>
+
+    <section class="section" id="problem" aria-labelledby="problem-title">
+      <div class="shell section-grid">
+        <p class="section-kicker">01 — The shift</p>
+        <div>
+          <h2 id="problem-title">An event is evidence.<br>A box is context.</h2>
+          <p class="lead">Stateless processing works until the answer depends on what came before. Then correlation leaks into handlers, stores, retries, and one-off workflows. Boxing gives that waiting and gathering a domain name.</p>
+          <div class="contrast">
+            <article>
+              <small>Event-centric</small>
+              <p>“What should happen because <em>this event</em> arrived?”</p>
+            </article>
+            <article class="after">
+              <small>Box-centric</small>
+              <p>“What does this <em>complete context</em> tell us?”</p>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="how" aria-labelledby="how-title">
+      <div class="shell">
+        <div class="section-grid">
+          <p class="section-kicker">02 — The lifecycle</p>
+          <div>
+            <h2 id="how-title">Four moves.<br>One richer unit.</h2>
+            <p class="lead">Boxes sit between arrival and business processing. They make correlation explicit, reusable, and legible in the language of the domain.</p>
+          </div>
+        </div>
+        <div class="lifecycle">
+          <article class="step">
+            <span class="step-index">01 / ARRIVE</span>
+            <h3>Receive the event</h3>
+            <p>The stream remains the input. Boxing changes when meaning is assigned.</p>
+          </article>
+          <article class="step">
+            <span class="step-index">02 / ROUTE</span>
+            <h3>Choose its boxes</h3>
+            <p>Rules use domain identifiers and meaning. One event may belong to several boxes.</p>
+          </article>
+          <article class="step">
+            <span class="step-index">03 / CLOSE</span>
+            <h3>Wait deliberately</h3>
+            <p>Each box accumulates context until its own closing policy is satisfied.</p>
+          </article>
+          <article class="step">
+            <span class="step-index">04 / PROCESS</span>
+            <h3>Open as a group</h3>
+            <p>A separate process consumes the closed box as one domain-level input.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="policies" aria-labelledby="policies-title">
+      <div class="shell section-grid">
+        <p class="section-kicker">03 — Closing policies</p>
+        <div>
+          <h2 id="policies-title">Context needs<br>a boundary.</h2>
+          <p class="lead">A box does not wait forever. Its domain decides when the collection has become useful enough—or complete enough—to process.</p>
+          <div class="policy-list">
+            <article class="policy">
+              <span class="policy-code">idle_for(30m)</span>
+              <h3>Sliding expiry</h3>
+              <p>Close after activity stops for a meaningful interval.</p>
+            </article>
+            <article class="policy">
+              <span class="policy-code">count &gt;= 100</span>
+              <h3>Maximum size</h3>
+              <p>Bound a group when volume itself defines the batch.</p>
+            </article>
+            <article class="policy">
+              <span class="policy-code">on(order.confirmed)</span>
+              <h3>Closing event</h3>
+              <p>Let an explicit domain event declare the context complete.</p>
+            </article>
+            <article class="policy">
+              <span class="policy-code">any_of(...)</span>
+              <h3>Combined policy</h3>
+              <p>Compose boundaries so the box reflects real domain timing.</p>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="overlap-title">
+      <div class="shell section-grid">
+        <p class="section-kicker">04 — Overlapping meaning</p>
+        <div>
+          <h2 id="overlap-title">The same event can tell more than one story.</h2>
+          <p class="lead">A cart update belongs to the order being built. It can also belong to the customer session that began with a search. Boxes are views of context, not exclusive buckets.</p>
+          <div class="overlap-visual" aria-label="A cart.updated event belongs to both OrderBox 1842 and SessionBox 7">
+            <div class="domain-circle order">OrderBox #1842</div>
+            <div class="domain-circle session">SessionBox #7</div>
+            <div class="shared-event">cart.updated</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="payoff shell" aria-labelledby="payoff-title">
+      <p id="payoff-title">Move business logic from thinking about events <span>to thinking about boxes.</span></p>
+    </section>
+  </main>
+
+  <footer class="footer shell">
+    <span>Boxing — an architecture pattern for correlated events.</span>
+    <span>Route by meaning. Process the whole.</span>
+  </footer>
+
+  <script>
+    document.documentElement.classList.add('js');
+
+    (() => {
+      const demo = document.getElementById('boxing-demo');
+      const events = [...demo.querySelectorAll('.stream-event')];
+      const boxEvents = [...demo.querySelectorAll('.box-event')];
+      const orderBox = demo.querySelector('[data-box="order"]');
+      const sessionBox = demo.querySelector('[data-box="session"]');
+      const processor = demo.querySelector('.processor');
+      const status = document.getElementById('demo-status');
+      const toggle = document.getElementById('toggle-demo');
+      const replay = document.getElementById('replay-demo');
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const messages = [
+        '<strong>Routing:</strong> search.performed → SessionBox #7',
+        '<strong>Routing:</strong> product.viewed → SessionBox #7',
+        '<strong>Two routes:</strong> cart.updated → OrderBox #1842 + SessionBox #7',
+        '<strong>Routing:</strong> payment.authorized → OrderBox #1842',
+        '<strong>Closing:</strong> order.confirmed completes OrderBox #1842',
+        '<strong>Processing:</strong> the closed OrderBox is consumed as one unit'
+      ];
+      let step = 1;
+      let timer = null;
+      let paused = false;
+
+      function render() {
+        events.forEach((event) => {
+          const eventStep = Number(event.dataset.step);
+          event.classList.toggle('is-active', step <= 5 && eventStep === step);
+          event.classList.toggle('is-sent', eventStep < step || step === 6);
+        });
+
+        boxEvents.forEach((event) => {
+          event.classList.toggle('is-visible', Number(event.dataset.at) <= step);
+        });
+
+        demo.classList.toggle('is-routing', step <= 5);
+        sessionBox.classList.toggle('is-receiving', step >= 1 && step <= 3);
+        orderBox.classList.toggle('is-receiving', step >= 3 && step <= 5);
+        orderBox.classList.toggle('is-closed', step >= 6);
+        processor.classList.toggle('is-ready', step >= 6);
+        status.innerHTML = messages[step - 1];
+      }
+
+      function schedule() {
+        window.clearTimeout(timer);
+        if (paused) return;
+        timer = window.setTimeout(() => {
+          step = step >= 6 ? 1 : step + 1;
+          render();
+          schedule();
+        }, step === 6 ? 2200 : 1250);
+      }
+
+      function restart() {
+        step = 1;
+        paused = false;
+        toggle.textContent = 'Pause';
+        toggle.setAttribute('aria-pressed', 'false');
+        render();
+        schedule();
+      }
+
+      toggle.addEventListener('click', () => {
+        paused = !paused;
+        toggle.textContent = paused ? 'Play' : 'Pause';
+        toggle.setAttribute('aria-pressed', String(paused));
+        if (!paused) schedule();
+        else window.clearTimeout(timer);
+      });
+
+      replay.addEventListener('click', restart);
+      render();
+
+      if (reduceMotion) {
+        step = 6;
+        paused = true;
+        toggle.textContent = 'Play';
+        toggle.setAttribute('aria-pressed', 'true');
+        render();
+      } else {
+        schedule();
+      }
+    })();
+  </script>
+</body>
+</html>
